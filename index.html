@@ -84,6 +84,11 @@
             font-family: 'Fira Code', monospace;
         }
 
+        .header-actions {
+            display: flex;
+            gap: 8px;
+        }
+
         /* BARRA DE CONSULTA CYPHER */
         .cypher-bar {
             background-color: #060911;
@@ -313,6 +318,12 @@
             z-index: 5;
         }
 
+        #inspector-content {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
         .node-badge {
             display: inline-block;
             padding: 3px 10px;
@@ -423,11 +434,209 @@
             color: #bae6fd;
         }
 
+        /* ELEMENTOS EXCLUSIVOS PARA MÓVIL / TABLET (OCULTOS EN ESCRITORIO) */
+        .drawer-mobile-header {
+            display: none;
+        }
+
+        .mobile-fab-bar {
+            display: none;
+        }
+
+        .drawer-backdrop {
+            display: none;
+        }
+
         /* SCROLLBAR PERSONALIZADO */
         ::-webkit-scrollbar { width: 6px; height: 6px; }
         ::-webkit-scrollbar-track { background: var(--bg-dark); }
         ::-webkit-scrollbar-thumb { background: #374151; border-radius: 3px; }
         ::-webkit-scrollbar-thumb:hover { background: #4b5563; }
+
+        /* ============================================================================
+           REGLAS RESPONSIVE PARA MÓVILES Y TABLETS (< 900px)
+           ============================================================================ */
+        @media (max-width: 900px) {
+            header {
+                padding: 10px 14px;
+            }
+
+            /* 3. Ocultar barra Cypher y subtítulo largo para ganar espacio */
+            .cypher-bar {
+                display: none !important;
+            }
+
+            .brand {
+                gap: 10px;
+            }
+
+            .brand-logo {
+                font-size: 1rem;
+                padding: 6px 10px;
+            }
+
+            .brand-titles h1 {
+                font-size: 0.92rem;
+            }
+
+            .brand-titles p {
+                display: none;
+            }
+
+            .header-actions .btn {
+                padding: 6px 8px;
+                font-size: 0.74rem;
+            }
+
+            /* 1. Canvas central al 100% y paneles laterales como cajones (drawers) */
+            #network-container {
+                width: 100%;
+                height: 100%;
+            }
+
+            .stats-overlay {
+                top: 10px;
+                left: 10px;
+                right: 10px;
+                flex-wrap: wrap;
+                gap: 6px;
+            }
+
+            .stat-pill {
+                font-size: 0.68rem;
+                padding: 4px 9px;
+            }
+
+            .sidebar-left {
+                position: absolute;
+                top: 0;
+                left: 0;
+                bottom: 0;
+                width: 86%;
+                max-width: 330px;
+                z-index: 30;
+                transform: translateX(-105%);
+                transition: transform 0.28s cubic-bezier(0.4, 0, 0.2, 1);
+                box-shadow: 6px 0 25px rgba(0, 0, 0, 0.75);
+            }
+
+            .sidebar-left.drawer-open {
+                transform: translateX(0);
+            }
+
+            .sidebar-right {
+                position: absolute;
+                top: 0;
+                right: 0;
+                bottom: 0;
+                width: 90%;
+                max-width: 380px;
+                z-index: 30;
+                transform: translateX(105%);
+                transition: transform 0.28s cubic-bezier(0.4, 0, 0.2, 1);
+                box-shadow: -6px 0 25px rgba(0, 0, 0, 0.75);
+                padding: 16px;
+            }
+
+            .sidebar-right.drawer-open {
+                transform: translateX(0);
+            }
+
+            /* Cabecera interna de cada drawer con botón "X" */
+            .drawer-mobile-header {
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                padding-bottom: 12px;
+                margin-bottom: 4px;
+                border-bottom: 1px solid var(--border-color);
+            }
+
+            .drawer-mobile-title {
+                font-size: 0.85rem;
+                font-weight: 700;
+                color: var(--unso-blue);
+                text-transform: uppercase;
+                letter-spacing: 0.05em;
+            }
+
+            .drawer-close-btn {
+                background-color: var(--bg-card);
+                border: 1px solid var(--border-color);
+                color: var(--text-main);
+                width: 30px;
+                height: 30px;
+                border-radius: 6px;
+                font-size: 1rem;
+                line-height: 1;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                cursor: pointer;
+            }
+
+            .drawer-close-btn:hover {
+                background-color: #ef4444;
+                border-color: #ef4444;
+                color: white;
+            }
+
+            /* Fondo oscurecido al abrir un cajón */
+            .drawer-backdrop {
+                display: block;
+                position: absolute;
+                inset: 0;
+                background-color: rgba(5, 8, 16, 0.65);
+                backdrop-filter: blur(2px);
+                z-index: 25;
+                opacity: 0;
+                pointer-events: none;
+                transition: opacity 0.25s ease;
+            }
+
+            .drawer-backdrop.active {
+                opacity: 1;
+                pointer-events: auto;
+            }
+
+            /* 2. Botones flotantes compactos en las esquinas inferiores */
+            .mobile-fab-bar {
+                display: flex;
+                justify-content: space-between;
+                position: absolute;
+                bottom: 18px;
+                left: 16px;
+                right: 16px;
+                pointer-events: none;
+                z-index: 20;
+            }
+
+            .fab-btn {
+                pointer-events: auto;
+                background: linear-gradient(135deg, #1e293b, #0f172a);
+                border: 1px solid var(--unso-blue);
+                color: var(--text-main);
+                padding: 10px 16px;
+                border-radius: 24px;
+                font-size: 0.82rem;
+                font-weight: 700;
+                display: flex;
+                align-items: center;
+                gap: 8px;
+                box-shadow: 0 4px 15px rgba(0, 0, 0, 0.6), 0 0 10px rgba(56, 189, 248, 0.25);
+                cursor: pointer;
+                transition: transform 0.15s, background 0.2s;
+            }
+
+            .fab-btn:active {
+                transform: scale(0.96);
+            }
+
+            .fab-btn.active {
+                background: linear-gradient(135deg, #0284c7, #0369a1);
+                color: white;
+            }
+        }
     </style>
 </head>
 <body>
@@ -449,7 +658,7 @@
             </div>
         </div>
 
-        <div style="display: flex; gap: 8px;">
+        <div class="header-actions">
             <button class="btn" onclick="resetCamera()">Centrar Grafo</button>
             <button class="btn" onclick="clearSelection()">Ver Todo</button>
         </div>
@@ -458,8 +667,15 @@
     <!-- CONTENEDOR PRINCIPAL -->
     <div class="main-container">
 
+        <!-- BACKDROP PARA MÓVILES -->
+        <div class="drawer-backdrop" id="drawer-backdrop" onclick="closeAllDrawers(true)"></div>
+
         <!-- PANEL IZQUIERDO: FILTROS Y CONTROLES -->
-        <aside class="sidebar-left">
+        <aside class="sidebar-left" id="sidebar-left">
+            <div class="drawer-mobile-header">
+                <span class="drawer-mobile-title">⚙ Filtros y Controles</span>
+                <button class="drawer-close-btn" onclick="toggleDrawer('left')" title="Cerrar Filtros">✕</button>
+            </div>
             
             <div class="panel-section">
                 <div class="section-title">Búsqueda Rápida</div>
@@ -562,9 +778,24 @@
             </div>
         </main>
 
+        <!-- BOTONES FLOTANTES MÓVILES (ESQUINAS INFERIORES) -->
+        <div class="mobile-fab-bar">
+            <button class="fab-btn" id="fab-left" onclick="toggleDrawer('left')">
+                <span>⚙</span> <span>Filtros</span>
+            </button>
+            <button class="fab-btn" id="fab-right" onclick="toggleDrawer('right')">
+                <span>📋</span> <span>Detalles</span>
+            </button>
+        </div>
+
         <!-- PANEL DERECHO: INSPECTOR DE MATERIA -->
         <aside class="sidebar-right" id="inspector-panel">
+            <div class="drawer-mobile-header">
+                <span class="drawer-mobile-title">📋 Detalle Académico</span>
+                <button class="drawer-close-btn" onclick="toggleDrawer('right')" title="Cerrar Detalles">✕</button>
+            </div>
             <!-- Se llena dinámicamente al seleccionar un nodo -->
+            <div id="inspector-content"></div>
         </aside>
 
     </div>
@@ -813,10 +1044,13 @@
         let currentLayout = 'force';
         let activeClusterFilter = 'ALL';
 
+        function isMobileViewport() {
+            return window.innerWidth <= 900;
+        }
+
         function buildVisNodes() {
             return rawSubjects.map(s => {
                 const cMeta = CLUSTER_META[s.cluster];
-                // Contar cuántas materias desbloquea para dimensionar el nodo (Centralidad)
                 const outDegree = rawEdges.filter(e => e.from === s.id && e.type !== 'AFINIDAD').length;
                 const baseSize = 22 + (outDegree * 2.3);
 
@@ -949,6 +1183,10 @@
                 if (params.nodes.length > 0) {
                     const nodeId = params.nodes[0];
                     selectSubjectNode(nodeId);
+                    // 2. En móvil/tablet, al tocar un nodo abrir automáticamente el panel de detalles superpuesto
+                    if (isMobileViewport()) {
+                        openDrawer('right');
+                    }
                 } else {
                     clearSelection();
                 }
@@ -959,7 +1197,72 @@
         }
 
         // ============================================================================
-        // 4. INTERACCIÓN, FILTROS Y CONSULTAS CYPHER DINÁMICAS
+        // 4. CONTROL DE CAJONES RESPONSIVE (DRAWERS) Y REAJUSTE DE CANVAS
+        // ============================================================================
+        function openDrawer(side) {
+            const leftEl = document.getElementById("sidebar-left");
+            const rightEl = document.getElementById("inspector-panel");
+            const backdrop = document.getElementById("drawer-backdrop");
+            const fabLeft = document.getElementById("fab-left");
+            const fabRight = document.getElementById("fab-right");
+
+            if (side === 'left') {
+                rightEl.classList.remove("drawer-open");
+                fabRight.classList.remove("active");
+                leftEl.classList.add("drawer-open");
+                fabLeft.classList.add("active");
+            } else if (side === 'right') {
+                leftEl.classList.remove("drawer-open");
+                fabLeft.classList.remove("active");
+                rightEl.classList.add("drawer-open");
+                fabRight.classList.add("active");
+            }
+            backdrop.classList.add("active");
+        }
+
+        function closeAllDrawers(shouldFit = true) {
+            const leftEl = document.getElementById("sidebar-left");
+            const rightEl = document.getElementById("inspector-panel");
+            const backdrop = document.getElementById("drawer-backdrop");
+            const fabLeft = document.getElementById("fab-left");
+            const fabRight = document.getElementById("fab-right");
+
+            const wasOpen = leftEl.classList.contains("drawer-open") || rightEl.classList.contains("drawer-open");
+
+            leftEl.classList.remove("drawer-open");
+            rightEl.classList.remove("drawer-open");
+            backdrop.classList.remove("active");
+            fabLeft.classList.remove("active");
+            fabRight.classList.remove("active");
+
+            // 4. Llamar a network.fit() cuando se oculten o colapsen los paneles
+            if (shouldFit && wasOpen && network) {
+                setTimeout(() => {
+                    network.fit({ animation: { duration: 450, easingFunction: "easeInOutQuad" } });
+                }, 280);
+            }
+        }
+
+        function toggleDrawer(side) {
+            const targetEl = side === 'left'
+                ? document.getElementById("sidebar-left")
+                : document.getElementById("inspector-panel");
+
+            if (targetEl.classList.contains("drawer-open")) {
+                closeAllDrawers(true);
+            } else {
+                openDrawer(side);
+            }
+        }
+
+        window.addEventListener("resize", () => {
+            if (!isMobileViewport()) {
+                closeAllDrawers(false);
+            }
+        });
+
+        // ============================================================================
+        // 5. INTERACCIÓN, FILTROS Y CONSULTAS CYPHER DINÁMICAS
         // ============================================================================
         function selectSubjectNode(subjectId) {
             const subj = rawSubjects.find(s => s.id === subjectId);
@@ -1010,8 +1313,8 @@
                             </div>`;
                 }).join("");
 
-            const panel = document.getElementById("inspector-panel");
-            panel.innerHTML = `
+            const contentContainer = document.getElementById("inspector-content");
+            contentContainer.innerHTML = `
                 <div class="node-header">
                     <span class="node-badge" style="background:${cMeta.bg}; color:${cMeta.color}; border:1px solid ${cMeta.color};">
                         ${cMeta.name}
@@ -1068,8 +1371,8 @@
         }
 
         function renderOverviewInspector() {
-            const panel = document.getElementById("inspector-panel");
-            panel.innerHTML = `
+            const contentContainer = document.getElementById("inspector-content");
+            contentContainer.innerHTML = `
                 <div class="node-header">
                     <span class="node-badge" style="background:rgba(56,189,248,0.15); color:var(--unso-blue); border:1px solid var(--unso-blue);">
                         Visión General del Plan
@@ -1152,9 +1455,15 @@
             network.unselectAll();
             document.getElementById("cypher-display").innerHTML = `<span class="kw">MATCH</span> (m:<span class="lbl">Materia</span>)-[r:<span class="rel">CORRELATIVA|AFINIDAD</span>]-&gt;(n:<span class="lbl">Materia</span>) <span class="kw">RETURN</span> m, r, n;`;
             renderOverviewInspector();
+            if (isMobileViewport()) {
+                closeAllDrawers(true);
+            }
         }
 
         function resetCamera() {
+            if (isMobileViewport()) {
+                closeAllDrawers(false);
+            }
             network.fit({ animation: { duration: 600, easingFunction: "easeInOutQuad" } });
         }
 
@@ -1163,12 +1472,18 @@
             document.getElementById("btn-force").classList.toggle("active", type === 'force');
             document.getElementById("btn-hier").classList.toggle("active", type === 'hierarchical');
             network.setOptions(getNetworkOptions(type));
+            if (isMobileViewport()) {
+                closeAllDrawers(false);
+            }
             setTimeout(() => resetCamera(), 350);
         }
 
         function setClusterFilter(clusterKey) {
             activeClusterFilter = clusterKey;
             filterNodes();
+            if (isMobileViewport()) {
+                closeAllDrawers(true);
+            }
         }
 
         function filterNodes() {
