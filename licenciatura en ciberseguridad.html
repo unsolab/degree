@@ -1,0 +1,1246 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>UNSO | Grafo Curricular - Licenciatura en Ciberseguridad</title>
+    <!-- Librería Vis.js Network -->
+    <script type="text/javascript" src="https://unpkg.com/vis-network/standalone/umd/vis-network.min.js"></script>
+    <!-- Fuentes e Iconos -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&family=Fira+Code:wght@400;600&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-dark: #0b0f19;
+            --bg-panel: #111827;
+            --bg-card: #1f2937;
+            --border-color: #374151;
+            --text-main: #f3f4f6;
+            --text-muted: #9ca3af;
+            --unso-blue: #38bdf8;
+            --accent-cypher: #10b981;
+            
+            /* Colores de Clústeres (Nodos) */
+            --c-ciber: #ef4444;     /* Ciberseguridad, Forense y Defensa */
+            --c-dev: #3b82f6;       /* Desarrollo, Software y Datos */
+            --c-net: #10b981;       /* Redes, Sistemas e Infraestructura */
+            --c-mgmt: #a855f7;      /* Gestión, Legales, RRII y Ética */
+            --c-math: #f59e0b;      /* Ciencias Básicas y Matemática */
+            --c-int: #ec4899;       /* Práctica e Integración Final */
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--bg-dark);
+            color: var(--text-main);
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        /* HEADER ESTILO NEO4J / UNSO */
+        header {
+            background-color: var(--bg-panel);
+            border-bottom: 1px solid var(--border-color);
+            padding: 12px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            z-index: 10;
+        }
+
+        .brand {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .brand-logo {
+            background: linear-gradient(135deg, #0284c7, #38bdf8);
+            color: white;
+            font-weight: 800;
+            font-size: 1.2rem;
+            padding: 8px 12px;
+            border-radius: 8px;
+            letter-spacing: 1px;
+            box-shadow: 0 0 15px rgba(56, 189, 248, 0.3);
+        }
+
+        .brand-titles h1 {
+            font-size: 1.05rem;
+            font-weight: 700;
+            color: var(--text-main);
+        }
+
+        .brand-titles p {
+            font-size: 0.78rem;
+            color: var(--unso-blue);
+            font-family: 'Fira Code', monospace;
+        }
+
+        /* BARRA DE CONSULTA CYPHER */
+        .cypher-bar {
+            background-color: #060911;
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            padding: 8px 14px;
+            font-family: 'Fira Code', monospace;
+            font-size: 0.82rem;
+            color: #e5e7eb;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex: 1;
+            max-width: 680px;
+            margin: 0 20px;
+            box-shadow: inset 0 2px 4px rgba(0,0,0,0.5);
+        }
+
+        .cypher-prompt {
+            color: var(--accent-cypher);
+            font-weight: 600;
+        }
+
+        .cypher-code {
+            overflow-x: auto;
+            white-space: nowrap;
+        }
+
+        .kw { color: #f472b6; font-weight: 600; }
+        .lbl { color: #38bdf8; }
+        .rel { color: #fbbf24; }
+
+        /* LAYOUT PRINCIPAL */
+        .main-container {
+            display: flex;
+            flex: 1;
+            position: relative;
+            overflow: hidden;
+        }
+
+        /* SIDEBAR IZQUIERDO: CONTROLES Y FILTROS */
+        .sidebar-left {
+            width: 310px;
+            background-color: var(--bg-panel);
+            border-right: 1px solid var(--border-color);
+            padding: 16px;
+            display: flex;
+            flex-direction: column;
+            gap: 18px;
+            overflow-y: auto;
+            z-index: 5;
+        }
+
+        .panel-section {
+            background-color: rgba(31, 41, 55, 0.45);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 12px;
+        }
+
+        .section-title {
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            color: var(--text-muted);
+            margin-bottom: 10px;
+            font-weight: 700;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .search-box input, .select-box select {
+            width: 100%;
+            background-color: var(--bg-dark);
+            border: 1px solid var(--border-color);
+            color: var(--text-main);
+            padding: 8px 10px;
+            border-radius: 6px;
+            font-size: 0.85rem;
+            outline: none;
+        }
+
+        .search-box input:focus, .select-box select:focus {
+            border-color: var(--unso-blue);
+        }
+
+        /* BOTONES DE CONTROL */
+        .btn-group {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+        }
+
+        .btn {
+            background-color: var(--bg-card);
+            border: 1px solid var(--border-color);
+            color: var(--text-main);
+            padding: 8px 10px;
+            border-radius: 6px;
+            font-size: 0.8rem;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-weight: 600;
+            text-align: center;
+        }
+
+        .btn:hover {
+            background-color: #374151;
+            border-color: var(--unso-blue);
+        }
+
+        .btn.active {
+            background-color: #0284c7;
+            border-color: #38bdf8;
+            color: white;
+        }
+
+        /* CHECKBOXES Y LEYENDA DE ARISTAS */
+        .toggle-list {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .toggle-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            font-size: 0.82rem;
+            cursor: pointer;
+            padding: 4px 0;
+        }
+
+        .toggle-left {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .edge-line {
+            width: 24px;
+            height: 3px;
+            display: inline-block;
+            border-radius: 2px;
+        }
+
+        .edge-aprobada { background-color: #ef4444; }
+        .edge-regular { background-color: #f59e0b; border-top: 2px dashed #f59e0b; height: 0; }
+        .edge-afinidad { background-color: #38bdf8; border-top: 2px dotted #38bdf8; height: 0; }
+
+        /* LEYENDA DE CLÚSTERES */
+        .cluster-list {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .cluster-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 0.78rem;
+            padding: 5px 8px;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background 0.15s;
+        }
+
+        .cluster-item:hover {
+            background-color: rgba(255,255,255,0.06);
+        }
+
+        .dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            flex-shrink: 0;
+        }
+
+        /* LIENZO DEL GRAFO */
+        #network-container {
+            flex: 1;
+            height: 100%;
+            background: radial-gradient(circle at center, #111827 0%, #070a10 100%);
+            position: relative;
+        }
+
+        /* OVERLAY DE ESTADÍSTICAS FLOTANTE */
+        .stats-overlay {
+            position: absolute;
+            top: 15px;
+            left: 15px;
+            display: flex;
+            gap: 10px;
+            pointer-events: none;
+            z-index: 4;
+        }
+
+        .stat-pill {
+            background-color: rgba(17, 24, 39, 0.85);
+            backdrop-filter: blur(6px);
+            border: 1px solid var(--border-color);
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .stat-pill strong {
+            color: var(--unso-blue);
+            font-family: 'Fira Code', monospace;
+        }
+
+        /* SIDEBAR DERECHO: INSPECTOR DE MATERIA */
+        .sidebar-right {
+            width: 390px;
+            background-color: var(--bg-panel);
+            border-left: 1px solid var(--border-color);
+            padding: 20px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+            z-index: 5;
+        }
+
+        .node-badge {
+            display: inline-block;
+            padding: 3px 10px;
+            border-radius: 12px;
+            font-size: 0.72rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            margin-bottom: 6px;
+        }
+
+        .node-header h2 {
+            font-size: 1.25rem;
+            line-height: 1.3;
+            color: white;
+            margin-bottom: 6px;
+        }
+
+        .node-meta {
+            font-family: 'Fira Code', monospace;
+            font-size: 0.78rem;
+            color: var(--text-muted);
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .metrics-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 8px;
+        }
+
+        .metric-card {
+            background-color: var(--bg-card);
+            border: 1px solid var(--border-color);
+            padding: 8px;
+            border-radius: 6px;
+            text-align: center;
+        }
+
+        .metric-val {
+            font-size: 1.05rem;
+            font-weight: 700;
+            color: var(--unso-blue);
+            font-family: 'Fira Code', monospace;
+        }
+
+        .metric-lbl {
+            font-size: 0.65rem;
+            color: var(--text-muted);
+            margin-top: 2px;
+        }
+
+        .content-box {
+            background-color: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 12px;
+            font-size: 0.85rem;
+            line-height: 1.55;
+            color: #d1d5db;
+        }
+
+        .rel-list {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .rel-chip {
+            background-color: var(--bg-card);
+            border-left: 3px solid var(--unso-blue);
+            padding: 7px 10px;
+            border-radius: 4px;
+            font-size: 0.8rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            cursor: pointer;
+            transition: transform 0.1s, background 0.15s;
+        }
+
+        .rel-chip:hover {
+            background-color: #374151;
+            transform: translateX(3px);
+        }
+
+        .rel-chip.aprobada { border-left-color: #ef4444; }
+        .rel-chip.regular { border-left-color: #f59e0b; }
+        .rel-chip.afinidad { border-left-color: #38bdf8; }
+
+        .rel-tag {
+            font-size: 0.68rem;
+            font-family: 'Fira Code', monospace;
+            padding: 2px 6px;
+            border-radius: 4px;
+            background-color: rgba(0,0,0,0.3);
+        }
+
+        .director-note {
+            background: linear-gradient(145deg, rgba(2,132,199,0.15), rgba(17,24,39,0.9));
+            border: 1px solid rgba(56, 189, 248, 0.3);
+            border-radius: 8px;
+            padding: 12px;
+            font-size: 0.8rem;
+            line-height: 1.45;
+            color: #bae6fd;
+        }
+
+        /* SCROLLBAR PERSONALIZADO */
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: var(--bg-dark); }
+        ::-webkit-scrollbar-thumb { background: #374151; border-radius: 3px; }
+        ::-webkit-scrollbar-thumb:hover { background: #4b5563; }
+    </style>
+</head>
+<body>
+
+    <!-- CABECERA -->
+    <header>
+        <div class="brand">
+            <div class="brand-logo">UNSO</div>
+            <div class="brand-titles">
+                <h1>Licenciatura en Ciberseguridad</h1>
+                <p>Título Intermedio: Tecnicatura Univ. en Ciberseguridad</p>
+            </div>
+        </div>
+
+        <div class="cypher-bar" title="Consulta Cypher activa sobre el grafo curricular">
+            <span class="cypher-prompt">neo4j$</span>
+            <div class="cypher-code" id="cypher-display">
+                <span class="kw">MATCH</span> (m:<span class="lbl">Materia</span>)-[r:<span class="rel">CORRELATIVA|AFINIDAD</span>]-&gt;(n:<span class="lbl">Materia</span>) <span class="kw">RETURN</span> m, r, n;
+            </div>
+        </div>
+
+        <div style="display: flex; gap: 8px;">
+            <button class="btn" onclick="resetCamera()">Centrar Grafo</button>
+            <button class="btn" onclick="clearSelection()">Ver Todo</button>
+        </div>
+    </header>
+
+    <!-- CONTENEDOR PRINCIPAL -->
+    <div class="main-container">
+
+        <!-- PANEL IZQUIERDO: FILTROS Y CONTROLES -->
+        <aside class="sidebar-left">
+            
+            <div class="panel-section">
+                <div class="section-title">Búsqueda Rápida</div>
+                <div class="search-box">
+                    <input type="text" id="search-input" placeholder="Nombre, código (ej. 00310) o tema..." oninput="filterNodes()">
+                </div>
+            </div>
+
+            <div class="panel-section">
+                <div class="section-title">Disposición del Grafo (Layout)</div>
+                <div class="btn-group">
+                    <button class="btn active" id="btn-force" onclick="setLayout('force')">Red Neo4j</button>
+                    <button class="btn" id="btn-hier" onclick="setLayout('hierarchical')">Cronológico</button>
+                </div>
+            </div>
+
+            <div class="panel-section">
+                <div class="section-title">Filtro por Ciclo / Tramo</div>
+                <div class="select-box">
+                    <select id="cycle-filter" onchange="filterNodes()">
+                        <option value="ALL">Plan Completo (1° a 4° Año - 240 Cr.)</option>
+                        <option value="TEC">Título Intermedio: Tecnicatura (1° a 3° Año - 180 Cr.)</option>
+                        <option value="LIC">Ciclo Licenciatura (4° Año - 60 Cr.)</option>
+                        <option value="Y1">1° Año (60 Cr. / 1500 hs)</option>
+                        <option value="Y2">2° Año (60 Cr. / 1500 hs)</option>
+                        <option value="Y3">3° Año (60 Cr. / 1500 hs)</option>
+                        <option value="Y4">4° Año (60 Cr. / 1500 hs)</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="panel-section">
+                <div class="section-title">Relaciones (Aristas Cypher)</div>
+                <div class="toggle-list">
+                    <label class="toggle-item">
+                        <span class="toggle-left">
+                            <span class="edge-line edge-aprobada"></span>
+                            <span>[:REQ_APROBADA] (Final)</span>
+                        </span>
+                        <input type="checkbox" id="chk-aprobada" checked onchange="updateEdgesVisibility()">
+                    </label>
+                    <label class="toggle-item">
+                        <span class="toggle-left">
+                            <span class="edge-line edge-regular"></span>
+                            <span>[:REQ_REGULAR] (Cursada)</span>
+                        </span>
+                        <input type="checkbox" id="chk-regular" checked onchange="updateEdgesVisibility()">
+                    </label>
+                    <label class="toggle-item">
+                        <span class="toggle-left">
+                            <span class="edge-line edge-afinidad"></span>
+                            <span>[:AFINIDAD_TEMATICA]</span>
+                        </span>
+                        <input type="checkbox" id="chk-afinidad" checked onchange="updateEdgesVisibility()">
+                    </label>
+                </div>
+            </div>
+
+            <div class="panel-section">
+                <div class="section-title">
+                    <span>Ejes Temáticos (Clústeres)</span>
+                    <span style="font-size:0.68rem; color:var(--unso-blue); cursor:pointer;" onclick="setClusterFilter('ALL')">[Todos]</span>
+                </div>
+                <div class="cluster-list">
+                    <div class="cluster-item" onclick="setClusterFilter('CIBER')">
+                        <span class="dot" style="background: var(--c-ciber);"></span>
+                        <span>Ciberseguridad, Defensa y Forense</span>
+                    </div>
+                    <div class="cluster-item" onclick="setClusterFilter('DEV')">
+                        <span class="dot" style="background: var(--c-dev);"></span>
+                        <span>Desarrollo de Software y Datos</span>
+                    </div>
+                    <div class="cluster-item" onclick="setClusterFilter('NET')">
+                        <span class="dot" style="background: var(--c-net);"></span>
+                        <span>Redes, Sistemas e Infraestructura</span>
+                    </div>
+                    <div class="cluster-item" onclick="setClusterFilter('MGMT')">
+                        <span class="dot" style="background: var(--c-mgmt);"></span>
+                        <span>Gestión, Legales, Ética y RRII</span>
+                    </div>
+                    <div class="cluster-item" onclick="setClusterFilter('MATH')">
+                        <span class="dot" style="background: var(--c-math);"></span>
+                        <span>Ciencias Básicas y Matemática</span>
+                    </div>
+                    <div class="cluster-item" onclick="setClusterFilter('INT')">
+                        <span class="dot" style="background: var(--c-int);"></span>
+                        <span>Práctica Profesional e Integración</span>
+                    </div>
+                </div>
+            </div>
+
+        </aside>
+
+        <!-- LIENZO CENTRAL VIS.JS -->
+        <main id="network-container">
+            <div class="stats-overlay">
+                <div class="stat-pill">Asignaturas: <strong id="stat-nodes">28</strong></div>
+                <div class="stat-pill">Relaciones Activas: <strong id="stat-edges">0</strong></div>
+                <div class="stat-pill">Carga Visible: <strong id="stat-hours">6000 hs (240 Cr.)</strong></div>
+            </div>
+        </main>
+
+        <!-- PANEL DERECHO: INSPECTOR DE MATERIA -->
+        <aside class="sidebar-right" id="inspector-panel">
+            <!-- Se llena dinámicamente al seleccionar un nodo -->
+        </aside>
+
+    </div>
+
+    <script>
+        // ============================================================================
+        // 1. BASE DE DATOS CURRICULAR UNSO (NODOS: 28 ASIGNATURAS OFICIALES)
+        // ============================================================================
+        const CLUSTER_META = {
+            CIBER: { name: "Ciberseguridad, Defensa y Forense", color: "#ef4444", bg: "rgba(239,68,68,0.2)" },
+            DEV:   { name: "Desarrollo de Software y Datos", color: "#3b82f6", bg: "rgba(59,130,246,0.2)" },
+            NET:   { name: "Redes, Sistemas e Infraestructura", color: "#10b981", bg: "rgba(16,185,129,0.2)" },
+            MGMT:  { name: "Gestión, Legales, Ética y RRII", color: "#a855f7", bg: "rgba(168,85,247,0.2)" },
+            MATH:  { name: "Ciencias Básicas y Matemática", color: "#f59e0b", bg: "rgba(245,158,11,0.2)" },
+            INT:   { name: "Práctica Profesional e Integración", color: "#ec4899", bg: "rgba(236,72,153,0.2)" }
+        };
+
+        const rawSubjects = [
+            // --- PRIMER AÑO - PRIMER CUATRIMESTRE ---
+            {
+                id: "00302", label: "Intro. al Desarrollo\nde Sistemas", fullName: "Introducción al Desarrollo de Sistemas",
+                year: 1, term: 1, level: 1, hip: 64, hta: 186, total: 250, credits: 10, cluster: "DEV", degree: "TEC",
+                contents: "Sistemas. Concepto. Tipos de sistemas de información. Desarrollo de sistemas. Administración de sistemas de bases de datos. Diagramas de flujo, datos, procesos, lógica. SQL/QBE."
+            },
+            {
+                id: "00303", label: "Fundamentos del\nCibercrimen", fullName: "Fundamentos del Cibercrimen",
+                year: 1, term: 1, level: 1, hip: 64, hta: 186, total: 250, credits: 10, cluster: "MGMT", degree: "TEC",
+                contents: "Introducción al cibercrimen. Clases de delitos. Legislación vigente. El Derecho, las tecnologías digitales e Internet. Cibercrimen y ciberseguridad."
+            },
+            {
+                id: "00304", label: "Conceptos de\nDes. de Software", fullName: "Conceptos de Desarrollo de Software",
+                year: 1, term: 1, level: 1, hip: 64, hta: 186, total: 250, credits: 10, cluster: "DEV", degree: "TEC",
+                contents: "Desarrollo de software y conceptos comunes al lenguaje de programación. Desarrollo de algoritmos. Solución de problemas. Debug, standards de programación, variables, tipos de datos, operadores, decisores. Estructuras de repetición, matriz. Construcción de interfaces."
+            },
+
+            // --- PRIMER AÑO - SEGUNDO CUATRIMESTRE ---
+            {
+                id: "00075", label: "Fundamentos de\nMatemática", fullName: "Fundamentos de Matemática",
+                year: 1, term: 2, level: 2, hip: 64, hta: 186, total: 250, credits: 10, cluster: "MATH", degree: "TEC",
+                contents: "Álgebra vectorial, suma de vectores, producto vectorial, producto escalar de vectores, diferencia entre vectores, determinantes, sistemas de ecuaciones lineales, métodos de reducción, polinomios, operaciones con polinomios, ecuaciones de segundo grado, cálculo combinatorio, variaciones, permutaciones con repetición, combinaciones."
+            },
+            {
+                id: "00305", label: "Arquitectura de\nTecnologías Inf.", fullName: "Arquitectura de Tecnologías Informáticas",
+                year: 1, term: 2, level: 2, hip: 64, hta: 186, total: 250, credits: 10, cluster: "NET", degree: "TEC",
+                contents: "Arquitecturas de sistemas operativos. Redes a partir de sistemas operativos. Arquitecturas de sistemas distribuidos. Tecnologías actuales y tendencias."
+            },
+            {
+                id: "00306", label: "Fund. Ciberseguridad\ne Infra. Críticas", fullName: "Fundamentos de Ciberseguridad y Protección de Infraestructuras Críticas",
+                year: 1, term: 2, level: 2, hip: 64, hta: 186, total: 250, credits: 10, cluster: "CIBER", degree: "TEC",
+                contents: "Historia, Desarrollo y evolución. Modelos de seguridad y soluciones de seguridad. Riesgos y vulnerabilidades. Controles técnicos y mitigación de riesgos. Políticas de seguridad. Marcos de administración de incidentes. La Protección de las Infraestructuras Críticas. Concepto. Evolución. Casos. Normativa."
+            },
+
+            // --- SEGUNDO AÑO - PRIMER CUATRIMESTRE ---
+            {
+                id: "00307", label: "Programación\nOrientada a Objetos", fullName: "Programación orientada a Objetos",
+                year: 2, term: 1, level: 3, hip: 64, hta: 186, total: 250, credits: 10, cluster: "DEV", degree: "TEC",
+                contents: "Tipos de datos. Decisiones, estructuras de repetición. Métodos. Matrices y colecciones. Polimorfismo. Manejo de excepciones. Persistencia. Conectividad y DBMS. Interfaces. Testeo de software y debug."
+            },
+            {
+                id: "00308", label: "Cálculo\nAplicado", fullName: "Cálculo Aplicado",
+                year: 2, term: 1, level: 3, hip: 64, hta: 186, total: 250, credits: 10, cluster: "MATH", degree: "TEC",
+                contents: "Funciones trigonométricas y exponenciales. Límites y diferenciación. Reglas de diferenciación. Máxima, mínima y optimización. Modelado de curvas. Integrales, derivadas. Métodos numéricos. Aplicaciones en el mundo real. Técnicas de integración. Ecuaciones diferenciadas. Matrices, determinantes, Vectores y valores."
+            },
+            {
+                id: "00310", label: "Gestión Integral de\nla Ciberseguridad", fullName: "Gestión Integral de la Ciberseguridad",
+                year: 2, term: 1, level: 3, hip: 64, hta: 186, total: 250, credits: 10, cluster: "MGMT", degree: "TEC",
+                contents: "Autenticación y autorización en sistemas. Directorio de servicios. Administración y seguridad de sistemas. Políticas y regulación de TI. Dinámicas sociales y culturales de la globalización. Ética aplicada a la tecnología. Protección de datos personales en la era digital. Privacidad y seguridad. Normativa aplicable. Casos."
+            },
+
+            // --- SEGUNDO AÑO - SEGUNDO CUATRIMESTRE ---
+            {
+                id: "00311", label: "Base de\nDatos", fullName: "Base de Datos",
+                year: 2, term: 2, level: 4, hip: 64, hta: 186, total: 250, credits: 10, cluster: "DEV", degree: "TEC",
+                contents: "SQL. Programación de Bases de datos."
+            },
+            {
+                id: "00312", label: "Sist. de Análisis y\nMétodos de Diseño", fullName: "Sistemas de Análisis y Métodos de Diseño",
+                year: 2, term: 2, level: 4, hip: 64, hta: 186, total: 250, credits: 10, cluster: "DEV", degree: "TEC",
+                contents: "Análisis de sistemas, desarrollo de tecnologías. Planificación de sistemas. Administración de proyectos. Diseño de sistemas e implementación. Soporte. Herramientas y técnicas para el desarrollo de sistemas."
+            },
+            {
+                id: "00313", label: "Ciberdefensa", fullName: "Ciberdefensa",
+                year: 2, term: 2, level: 4, hip: 64, hta: 186, total: 250, credits: 10, cluster: "CIBER", degree: "TEC",
+                contents: "Evolución de la Ciberdefensa. Ciberguerra. Ciberterrorismo. Mejores Prácticas en Ciberdefensa. Principal normativa nacional e internacional. Ciberguerra y el derecho internacional humanitario. Manual de Tallin. Ciberoperaciones."
+            },
+
+            // --- TERCER AÑO - PRIMER CUATRIMESTRE ---
+            {
+                id: "00314", label: "Criptografía", fullName: "Criptografía",
+                year: 3, term: 1, level: 5, hip: 64, hta: 186, total: 250, credits: 10, cluster: "CIBER", degree: "TEC",
+                contents: "Algoritmos y criptografía. Protocolos y técnicas. Aplicación."
+            },
+            {
+                id: "00315", label: "Administración\nde Redes", fullName: "Administración de Redes",
+                year: 3, term: 1, level: 5, hip: 64, hta: 186, total: 250, credits: 10, cluster: "NET", degree: "TEC",
+                contents: "Conceptos de instalación y administración de sistemas informáticos distribuidos. Administración de sistemas operativos de redes. Infraestructura de redes."
+            },
+            {
+                id: "00316", label: "Cibercrimen y\nAnálisis Forense", fullName: "Cibercrimen y Análisis Forense",
+                year: 3, term: 1, level: 5, hip: 64, hta: 186, total: 250, credits: 10, cluster: "CIBER", degree: "TEC",
+                contents: "Análisis forense. Hardware, Software. Técnica y Método. Peritaje, normativa, implicancias y técnicas."
+            },
+
+            // --- TERCER AÑO - SEGUNDO CUATRIMESTRE (FIN TECNICATURA) ---
+            {
+                id: "00317", label: "Inv. Criminal de\nDelitos Informáticos", fullName: "Investigación Criminal de Delitos Informáticos",
+                year: 3, term: 2, level: 6, hip: 64, hta: 186, total: 250, credits: 10, cluster: "CIBER", degree: "TEC",
+                contents: "Metodología de la investigación criminal. Delitos. Delitos informáticos. Convención Budapest, normativa nacional y normativa internacional."
+            },
+            {
+                id: "00318", label: "Programación\nde Sistemas", fullName: "Programación de Sistemas",
+                year: 3, term: 2, level: 6, hip: 64, hta: 186, total: 250, credits: 10, cluster: "NET", degree: "TEC",
+                contents: "Conceptos de programación en C/C++ en UNIX/Linux. Desarrollo, algoritmos, estructuras de datos. Análisis."
+            },
+            {
+                id: "00319", label: "Ingeniería\nde Redes", fullName: "Ingeniería de Redes",
+                year: 3, term: 2, level: 6, hip: 64, hta: 186, total: 250, credits: 10, cluster: "NET", degree: "TEC",
+                contents: "Diseño, implementación y administración de ambientes. Direccionamiento de redes. Hardware y software de redes Wireless y cableadas."
+            },
+
+            // --- CUARTO AÑO - PRIMER CUATRIMESTRE (CICLO LICENCIATURA) ---
+            {
+                id: "00513", label: "Adm. y Respuesta\na Incidentes", fullName: "Administración y respuesta a Incidentes",
+                year: 4, term: 1, level: 7, hip: 64, hta: 86, total: 150, credits: 6, cluster: "CIBER", degree: "LIC",
+                contents: "Gestión del riesgo en ciberseguridad. Operaciones y respuesta a incidentes. Resiliencia y continuidad de los procesos organizacionales/empresariales. Protección y restablecimiento de infraestructura."
+            },
+            {
+                id: "00511", label: "Taller:\nHacking Ético", fullName: "Taller: Hacking Ético",
+                year: 4, term: 1, level: 7, hip: 96, hta: 154, total: 250, credits: 10, cluster: "CIBER", degree: "LIC",
+                contents: "Qué es el Hacking ético. Identificación y Explotación de vulnerabilidades en sistemas. Identificación y Explotación de vulnerabilidades en aplicaciones web. Identificación y Explotación de vulnerabilidades en redes y servidores."
+            },
+            {
+                id: "00119", label: "Comunicación\nEstratégica", fullName: "Comunicación Estratégica",
+                year: 4, term: 1, level: 7, hip: 64, hta: 36, total: 100, credits: 4, cluster: "MGMT", degree: "LIC",
+                contents: "Modelos de Comunicación Institucional. Estrategias de Gestión del riesgo y de contextos de crisis y conflicto. Análisis de variables para estrategias comunicativas. Planes para la respuesta estratégica. Motivación, liderazgo y coach. Dinámicas de grupos y presentación personal."
+            },
+            {
+                id: "00512", label: "Liderazgo de Equipos\ny RRHH", fullName: "Liderazgo de equipos de trabajo y Recursos Humanos",
+                year: 4, term: 1, level: 7, hip: 64, hta: 36, total: 100, credits: 4, cluster: "MGMT", degree: "LIC",
+                contents: "Liderazgo. Tipos de Organizaciones. Ambiente interno y externo. Planificación, organización del trabajo, gestión del empleo y del desempeño. Gestión de relaciones sociales y humanas (clima laboral, higiene y seguridad). Gestión de la calidad e indicadores en RRHH."
+            },
+            {
+                id: "00320", label: "Práctica Profesional\nSupervisada (PPS)", fullName: "Práctica Profesional Supervisada",
+                year: 4, term: 1, level: 7, hip: 140, hta: 10, total: 150, credits: 6, cluster: "INT", degree: "LIC",
+                contents: "Actividad formativa de participación en espacios supervisados de inserción gradual al rol profesional en un ambiente laboral específico en instituciones públicas y privadas mediante convenios, integrando los conocimientos adquiridos."
+            },
+
+            // --- CUARTO AÑO - SEGUNDO CUATRIMESTRE ---
+            {
+                id: "00514", label: "Fraude y Protección\nde Datos Personales", fullName: "Fraude y protección de Datos Personales",
+                year: 4, term: 2, level: 8, hip: 64, hta: 36, total: 100, credits: 4, cluster: "MGMT", degree: "LIC",
+                contents: "Tipificación de fraudes. Modelos de prevención de fraude. Medidas de protección de los datos personales. Normativas y organismos de aplicación. Compliance."
+            },
+            {
+                id: "00515", label: "Deontología\nProfesional", fullName: "Deontología Profesional",
+                year: 4, term: 2, level: 8, hip: 64, hta: 36, total: 100, credits: 4, cluster: "MGMT", degree: "LIC",
+                contents: "Problemática actual de los profesionales del sector de ciberseguridad. Ética y toma de decisiones en organizaciones públicas y privadas. Regulaciones de la profesión y otras profesiones relacionadas. Interés público."
+            },
+            {
+                id: "00516", label: "Ciberinteligencia", fullName: "Ciberinteligencia",
+                year: 4, term: 2, level: 8, hip: 96, hta: 54, total: 150, credits: 6, cluster: "CIBER", degree: "LIC",
+                contents: "Ciclo de la Inteligencia. Ingeniería Social. OSINT. HUMINT. SIGINT. MASINT. Inteligencia financiera. Ingeniería Inversa."
+            },
+            {
+                id: "00517", label: "Diplomacia y RRII\nen Ciberseguridad", fullName: "Diplomacia y Relaciones Internacionales en ciberseguridad",
+                year: 4, term: 2, level: 8, hip: 64, hta: 36, total: 100, credits: 4, cluster: "MGMT", degree: "LIC",
+                contents: "Teorías de las relaciones internacionales. Principales actores globales. Redes y organizaciones. Alianzas estratégicas de nuestro país y tendencias en comercio internacional. Procesos de integración económica y el rol de la seguridad de la información. Escenarios de conflicto."
+            },
+            {
+                id: "00518", label: "Trabajo Final\nIntegrador (TFI)", fullName: "Proyecto / Trabajo Final Integrador",
+                year: 4, term: 2, level: 8, hip: 200, hta: 100, total: 300, credits: 12, cluster: "INT", degree: "LIC",
+                contents: "Actividad formativa integradora de todos los conocimientos y habilidades de la carrera. Modalidad de proyecto bajo dos marcos posibles: 1) Desarrollo de un plan de ciberseguridad integral para una organización pública o privada, o 2) Desarrollo de una nueva empresa de ciberseguridad."
+            }
+        ];
+
+        // ============================================================================
+        // 2. RELACIONES OFICIALES (CORRELATIVAS) Y AFINIDAD TEMÁTICA
+        // ============================================================================
+        const rawEdges = [
+            // --- CORRELATIVAS REGULARIZADAS (Cursada aprobada requerida) ---
+            { from: "00302", to: "00307", type: "REGULAR", label: "REGULAR" },
+            { from: "00304", to: "00307", type: "REGULAR", label: "REGULAR" },
+            { from: "00075", to: "00308", type: "REGULAR", label: "REGULAR" },
+            { from: "00306", to: "00310", type: "REGULAR", label: "REGULAR" },
+            { from: "00303", to: "00310", type: "REGULAR", label: "REGULAR" },
+            { from: "00075", to: "00311", type: "REGULAR", label: "REGULAR" },
+            { from: "00305", to: "00311", type: "REGULAR", label: "REGULAR" },
+            { from: "00075", to: "00312", type: "REGULAR", label: "REGULAR" },
+            { from: "00306", to: "00313", type: "REGULAR", label: "REGULAR" },
+            { from: "00308", to: "00314", type: "REGULAR", label: "REGULAR" },
+            { from: "00307", to: "00314", type: "REGULAR", label: "REGULAR" },
+            { from: "00311", to: "00315", type: "REGULAR", label: "REGULAR" },
+            { from: "00310", to: "00316", type: "REGULAR", label: "REGULAR" },
+            { from: "00315", to: "00319", type: "REGULAR", label: "REGULAR" },
+            { from: "00317", to: "00511", type: "REGULAR", label: "REGULAR" },
+            { from: "00317", to: "00513", type: "REGULAR", label: "REGULAR" },
+            { from: "00317", to: "00514", type: "REGULAR", label: "REGULAR" },
+            { from: "00317", to: "00516", type: "REGULAR", label: "REGULAR" },
+            { from: "00317", to: "00518", type: "REGULAR", label: "REGULAR" },
+
+            // --- CORRELATIVAS APROBADAS (Final aprobado requerido) ---
+            { from: "00302", to: "00311", type: "APROBADA", label: "APROBADA" },
+            { from: "00303", to: "00313", type: "APROBADA", label: "APROBADA" },
+            { from: "00075", to: "00314", type: "APROBADA", label: "APROBADA" },
+            { from: "00302", to: "00315", type: "APROBADA", label: "APROBADA" },
+            { from: "00303", to: "00315", type: "APROBADA", label: "APROBADA" },
+            { from: "00304", to: "00315", type: "APROBADA", label: "APROBADA" },
+            { from: "00303", to: "00316", type: "APROBADA", label: "APROBADA" },
+            { from: "00306", to: "00316", type: "APROBADA", label: "APROBADA" },
+            { from: "00307", to: "00316", type: "APROBADA", label: "APROBADA" },
+            { from: "00310", to: "00317", type: "APROBADA", label: "APROBADA" },
+            { from: "00307", to: "00318", type: "APROBADA", label: "APROBADA" },
+            { from: "00310", to: "00119", type: "APROBADA", label: "APROBADA" },
+            { from: "00316", to: "00320", type: "APROBADA", label: "APROBADA" },
+            { from: "00316", to: "00511", type: "APROBADA", label: "APROBADA" },
+            { from: "00310", to: "00512", type: "APROBADA", label: "APROBADA" },
+            { from: "00310", to: "00515", type: "APROBADA", label: "APROBADA" },
+            { from: "00316", to: "00516", type: "APROBADA", label: "APROBADA" },
+            { from: "00310", to: "00517", type: "APROBADA", label: "APROBADA" },
+            { from: "00310", to: "00518", type: "APROBADA", label: "APROBADA" },
+
+            // --- AFINIDAD TEMÁTICA Y DE CONTENIDOS (Articulación Horizontal/Vertical) ---
+            { from: "00302", to: "00312", type: "AFINIDAD", label: "Ing. de Software", topic: "Diseño y planificación de sistemas de información" },
+            { from: "00305", to: "00315", type: "AFINIDAD", label: "Sist. Operativos y Redes", topic: "Arquitecturas distribuidas y SO de red" },
+            { from: "00305", to: "00318", type: "AFINIDAD", label: "UNIX / Linux Kernel", topic: "Arquitectura de SO aplicada a programación C/C++ en Linux" },
+            { from: "00306", to: "00513", type: "AFINIDAD", label: "Gestión de Incidentes", topic: "Protección de infraestructuras críticas y resiliencia operativa" },
+            { from: "00313", to: "00517", type: "AFINIDAD", label: "Geopolítica y Manual Tallin", topic: "Ciberguerra, derecho internacional y diplomacia en ciberespacio" },
+            { from: "00313", to: "00516", type: "AFINIDAD", label: "Ciberoperaciones", topic: "Inteligencia estratégica aplicada a la defensa nacional" },
+            { from: "00314", to: "00511", type: "AFINIDAD", label: "Seguridad de Protocolos", topic: "Análisis criptográfico y explotación de vulnerabilidades" },
+            { from: "00316", to: "00317", type: "AFINIDAD", label: "Peritaje y Cadena Custodia", topic: "Evidencia digital forense aplicada al proceso penal y Convención de Budapest" },
+            { from: "00318", to: "00511", type: "AFINIDAD", label: "Exploits y Bajo Nivel", topic: "Estructuras en C/C++ y memoria para identificación de vulnerabilidades" },
+            { from: "00318", to: "00516", type: "AFINIDAD", label: "Ingeniería Inversa", topic: "Análisis de binarios en C/C++ para ciberinteligencia" },
+            { from: "00319", to: "00511", type: "AFINIDAD", label: "Pentesting de Redes", topic: "Explotación de infraestructuras cableadas, wireless y servidores" },
+            { from: "00310", to: "00514", type: "AFINIDAD", label: "Privacidad y Compliance", topic: "Protección de datos personales, normativa y prevención del fraude" },
+            { from: "00119", to: "00513", type: "AFINIDAD", label: "Manejo de Crisis", topic: "Comunicación institucional durante incidentes críticos de seguridad" },
+            { from: "00511", to: "00516", type: "AFINIDAD", label: "Red Team & OSINT", topic: "Ingeniería social y reconocimiento ofensivo" },
+            { from: "00320", to: "00518", type: "AFINIDAD", label: "Culminación Profesional", topic: "Integración de la práctica laboral con el Proyecto Final de Licenciatura" }
+        ];
+
+        // ============================================================================
+        // 3. INICIALIZACIÓN DE VIS.JS Y ESTADO DEL GRAFO
+        // ============================================================================
+        let network = null;
+        let nodesDataset = new vis.DataSet();
+        let edgesDataset = new vis.DataSet();
+        let currentLayout = 'force';
+        let activeClusterFilter = 'ALL';
+
+        function buildVisNodes() {
+            return rawSubjects.map(s => {
+                const cMeta = CLUSTER_META[s.cluster];
+                // Contar cuántas materias desbloquea para dimensionar el nodo (Centralidad)
+                const outDegree = rawEdges.filter(e => e.from === s.id && e.type !== 'AFINIDAD').length;
+                const baseSize = 22 + (outDegree * 2.3);
+
+                return {
+                    id: s.id,
+                    label: `${s.label}\n[${s.id}]`,
+                    level: s.level,
+                    cluster: s.cluster,
+                    year: s.year,
+                    degree: s.degree,
+                    shape: "dot",
+                    size: baseSize,
+                    color: {
+                        background: cMeta.color,
+                        border: "#ffffff",
+                        highlight: { background: "#ffffff", border: cMeta.color },
+                        hover: { background: cMeta.color, border: "#38bdf8" }
+                    },
+                    font: {
+                        color: "#f3f4f6",
+                        size: 12,
+                        face: "Inter",
+                        multi: true,
+                        vadjust: 4
+                    },
+                    borderWidth: 2,
+                    shadow: {
+                        enabled: true,
+                        color: cMeta.color,
+                        size: 12,
+                        x: 0,
+                        y: 0
+                    }
+                };
+            });
+        }
+
+        function buildVisEdges() {
+            return rawEdges.map((e, idx) => {
+                let colorObj, dashes, width, fontColor;
+                if (e.type === "APROBADA") {
+                    colorObj = { color: "#ef4444", highlight: "#ff6b6b", hover: "#ff6b6b" };
+                    dashes = false;
+                    width = 2.4;
+                    fontColor = "#fca5a5";
+                } else if (e.type === "REGULAR") {
+                    colorObj = { color: "#f59e0b", highlight: "#fcd34d", hover: "#fcd34d" };
+                    dashes = [6, 4];
+                    width = 2.0;
+                    fontColor = "#fde68a";
+                } else {
+                    colorObj = { color: "#38bdf8", highlight: "#7dd3fc", hover: "#7dd3fc", opacity: 0.65 };
+                    dashes = [2, 4];
+                    width = 1.5;
+                    fontColor = "#7dd3fc";
+                }
+
+                return {
+                    id: `e_${idx}`,
+                    from: e.from,
+                    to: e.to,
+                    type: e.type,
+                    label: e.label,
+                    title: e.topic ? `Afinidad: ${e.topic}` : `Requisito: ${e.label}`,
+                    arrows: { to: { enabled: true, scaleFactor: 0.7 } },
+                    color: colorObj,
+                    dashes: dashes,
+                    width: width,
+                    font: {
+                        size: 9,
+                        color: fontColor,
+                        face: "Fira Code",
+                        strokeWidth: 3,
+                        strokeColor: "#0b0f19",
+                        align: "middle"
+                    },
+                    smooth: {
+                        type: "dynamic",
+                        roundness: 0.5
+                    }
+                };
+            });
+        }
+
+        function getNetworkOptions(layoutType) {
+            const isHier = layoutType === 'hierarchical';
+            return {
+                layout: {
+                    hierarchical: isHier ? {
+                        enabled: true,
+                        direction: "LR",
+                        sortMethod: "directed",
+                        levelSeparation: 230,
+                        nodeSpacing: 140
+                    } : { enabled: false }
+                },
+                physics: {
+                    enabled: !isHier,
+                    barnesHut: {
+                        gravitationalConstant: -4200,
+                        centralGravity: 0.25,
+                        springLength: 175,
+                        springConstant: 0.04,
+                        damping: 0.09,
+                        avoidOverlap: 0.5
+                    },
+                    stabilization: { iterations: 200 }
+                },
+                interaction: {
+                    hover: true,
+                    tooltipDelay: 150,
+                    navigationButtons: false,
+                    keyboard: true
+                }
+            };
+        }
+
+        function initGraph() {
+            const container = document.getElementById("network-container");
+            nodesDataset.add(buildVisNodes());
+            edgesDataset.add(buildVisEdges());
+
+            network = new vis.Network(
+                container,
+                { nodes: nodesDataset, edges: edgesDataset },
+                getNetworkOptions(currentLayout)
+            );
+
+            network.on("click", function (params) {
+                if (params.nodes.length > 0) {
+                    const nodeId = params.nodes[0];
+                    selectSubjectNode(nodeId);
+                } else {
+                    clearSelection();
+                }
+            });
+
+            updateStats();
+            renderOverviewInspector();
+        }
+
+        // ============================================================================
+        // 4. INTERACCIÓN, FILTROS Y CONSULTAS CYPHER DINÁMICAS
+        // ============================================================================
+        function selectSubjectNode(subjectId) {
+            const subj = rawSubjects.find(s => s.id === subjectId);
+            if (!subj) return;
+
+            network.selectNodes([subjectId]);
+
+            // Actualizar barra Cypher
+            const cypherEl = document.getElementById("cypher-display");
+            cypherEl.innerHTML = `<span class="kw">MATCH</span> (p)-[:<span class="rel">CORRELATIVA|AFINIDAD</span>]-&gt;(m:<span class="lbl">Materia</span> {codigo: <span style="color:#a7f3d0">'${subj.id}'</span>})-[:<span class="rel">CORRELATIVA|AFINIDAD</span>]-&gt;(s) <span class="kw">RETURN</span> p, m, s;`;
+
+            // Renderizar Inspector Derecho
+            const cMeta = CLUSTER_META[subj.cluster];
+            const prereqs = rawEdges.filter(e => e.to === subj.id && e.type !== 'AFINIDAD');
+            const unlocks = rawEdges.filter(e => e.from === subj.id && e.type !== 'AFINIDAD');
+            const affinities = rawEdges.filter(e => (e.from === subj.id || e.to === subj.id) && e.type === 'AFINIDAD');
+
+            let prereqHTML = prereqs.length === 0
+                ? `<div style="font-size:0.8rem; color:var(--text-muted);">Sin correlativas previas (Ingreso directo).</div>`
+                : prereqs.map(e => {
+                    const fromSubj = rawSubjects.find(s => s.id === e.from);
+                    const cls = e.type === 'APROBADA' ? 'aprobada' : 'regular';
+                    return `<div class="rel-chip ${cls}" onclick="focusNode('${fromSubj.id}')">
+                                <span><strong>[${fromSubj.id}]</strong> ${fromSubj.fullName}</span>
+                                <span class="rel-tag">${e.type}</span>
+                            </div>`;
+                }).join("");
+
+            let unlockHTML = unlocks.length === 0
+                ? `<div style="font-size:0.8rem; color:var(--text-muted);">No es requisito formal de materias posteriores.</div>`
+                : unlocks.map(e => {
+                    const toSubj = rawSubjects.find(s => s.id === e.to);
+                    const cls = e.type === 'APROBADA' ? 'aprobada' : 'regular';
+                    return `<div class="rel-chip ${cls}" onclick="focusNode('${toSubj.id}')">
+                                <span><strong>[${toSubj.id}]</strong> ${toSubj.fullName}</span>
+                                <span class="rel-tag">EXIGE ${e.type}</span>
+                            </div>`;
+                }).join("");
+
+            let affinityHTML = affinities.length === 0
+                ? `<div style="font-size:0.8rem; color:var(--text-muted);">Sin enlaces de afinidad adicionales registrados.</div>`
+                : affinities.map(e => {
+                    const otherId = e.from === subj.id ? e.to : e.from;
+                    const otherSubj = rawSubjects.find(s => s.id === otherId);
+                    return `<div class="rel-chip afinidad" onclick="focusNode('${otherSubj.id}')" title="${e.topic}">
+                                <span><strong>[${otherSubj.id}]</strong> ${otherSubj.fullName}</span>
+                                <span class="rel-tag">${e.label}</span>
+                            </div>`;
+                }).join("");
+
+            const panel = document.getElementById("inspector-panel");
+            panel.innerHTML = `
+                <div class="node-header">
+                    <span class="node-badge" style="background:${cMeta.bg}; color:${cMeta.color}; border:1px solid ${cMeta.color};">
+                        ${cMeta.name}
+                    </span>
+                    <h2>${subj.fullName}</h2>
+                    <div class="node-meta">
+                        <span>CÓDIGO: <strong>${subj.id}</strong></span>
+                        <span>•</span>
+                        <span>${subj.year}° AÑO / ${subj.term}° CUATR.</span>
+                        <span>•</span>
+                        <span>${subj.degree === 'TEC' ? 'Tramo Tecnicatura' : 'Ciclo Licenciatura'}</span>
+                    </div>
+                </div>
+
+                <div class="metrics-grid">
+                    <div class="metric-card">
+                        <div class="metric-val">${subj.credits}</div>
+                        <div class="metric-lbl">Créditos</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-val">${subj.hip}h</div>
+                        <div class="metric-lbl">Interacción</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-val">${subj.hta}h</div>
+                        <div class="metric-lbl">Autónomo</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-val">${subj.total}h</div>
+                        <div class="metric-lbl">Carga Total</div>
+                    </div>
+                </div>
+
+                <div>
+                    <div class="section-title">Contenidos Mínimos Oficiales</div>
+                    <div class="content-box">${subj.contents}</div>
+                </div>
+
+                <div>
+                    <div class="section-title">Requisitos para Cursar (${prereqs.length})</div>
+                    <div class="rel-list">${prereqHTML}</div>
+                </div>
+
+                <div>
+                    <div class="section-title">Asignaturas que Desbloquea (${unlocks.length})</div>
+                    <div class="rel-list">${unlockHTML}</div>
+                </div>
+
+                <div>
+                    <div class="section-title">Afinidad Temática y Articulación (${affinities.length})</div>
+                    <div class="rel-list">${affinityHTML}</div>
+                </div>
+            `;
+        }
+
+        function renderOverviewInspector() {
+            const panel = document.getElementById("inspector-panel");
+            panel.innerHTML = `
+                <div class="node-header">
+                    <span class="node-badge" style="background:rgba(56,189,248,0.15); color:var(--unso-blue); border:1px solid var(--unso-blue);">
+                        Visión General del Plan
+                    </span>
+                    <h2>Arquitectura Curricular UNSO</h2>
+                    <div class="node-meta">
+                        <span>28 Asignaturas</span>
+                        <span>•</span>
+                        <span>6000 Horas Totales</span>
+                        <span>•</span>
+                        <span>240 Créditos</span>
+                    </div>
+                </div>
+
+                <div class="director-note">
+                    <strong>Mensaje de la Dirección de Carrera:</strong><br>
+                    Este grafo modela la articulación académica de nuestra Licenciatura. El tamaño de cada nodo es proporcional a su <em>centralidad</em> (cuántas asignaturas futuras habilita). Observe cómo <strong>Gestión Integral de la Ciberseguridad (00310)</strong>, <strong>Cibercrimen y Análisis Forense (00316)</strong> e <strong>Investigación Criminal (00317)</strong> actúan como los tres grandes nodos concentradores hacia el 4° año.
+                </div>
+
+                <div class="metrics-grid">
+                    <div class="metric-card">
+                        <div class="metric-val">180</div>
+                        <div class="metric-lbl">Cr. Tecnicatura</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-val">4500h</div>
+                        <div class="metric-lbl">Hs. Tecnicatura</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-val">240</div>
+                        <div class="metric-lbl">Cr. Licenciatura</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-val">6000h</div>
+                        <div class="metric-lbl">Hs. Licenciatura</div>
+                    </div>
+                </div>
+
+                <div>
+                    <div class="section-title">Hitos Clave del Plan de Estudios</div>
+                    <div class="rel-list">
+                        <div class="rel-chip aprobada" onclick="focusNode('00310')">
+                            <span><strong>[00310]</strong> Gestión Integral de la Ciberseguridad</span>
+                            <span class="rel-tag">NODO CENTRAL</span>
+                        </div>
+                        <div class="rel-chip aprobada" onclick="focusNode('00316')">
+                            <span><strong>[00316]</strong> Cibercrimen y Análisis Forense</span>
+                            <span class="rel-tag">LLAVE A 4° AÑO</span>
+                        </div>
+                        <div class="rel-chip regular" onclick="focusNode('00317')">
+                            <span><strong>[00317]</strong> Inv. Criminal de Delitos Informáticos</span>
+                            <span class="rel-tag">FIN TECNICATURA</span>
+                        </div>
+                        <div class="rel-chip afinidad" onclick="focusNode('00511')">
+                            <span><strong>[00511]</strong> Taller: Hacking Ético</span>
+                            <span class="rel-tag">OFENSIVO</span>
+                        </div>
+                        <div class="rel-chip afinidad" onclick="focusNode('00518')">
+                            <span><strong>[00518]</strong> Trabajo Final Integrador (TFI)</span>
+                            <span class="rel-tag">GRADUACIÓN</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div style="font-size:0.78rem; color:var(--text-muted); line-height:1.45; margin-top:auto;">
+                    💡 <strong>Tip de uso:</strong> Haga clic sobre cualquier nodo del grafo para inspeccionar sus contenidos mínimos, correlativas exactas (Regularizadas vs. Aprobadas) y su afinidad temática.
+                </div>
+            `;
+        }
+
+        function focusNode(nodeId) {
+            network.focus(nodeId, {
+                scale: 1.25,
+                animation: { duration: 600, easingFunction: "easeInOutQuad" }
+            });
+            selectSubjectNode(nodeId);
+        }
+
+        function clearSelection() {
+            network.unselectAll();
+            document.getElementById("cypher-display").innerHTML = `<span class="kw">MATCH</span> (m:<span class="lbl">Materia</span>)-[r:<span class="rel">CORRELATIVA|AFINIDAD</span>]-&gt;(n:<span class="lbl">Materia</span>) <span class="kw">RETURN</span> m, r, n;`;
+            renderOverviewInspector();
+        }
+
+        function resetCamera() {
+            network.fit({ animation: { duration: 600, easingFunction: "easeInOutQuad" } });
+        }
+
+        function setLayout(type) {
+            currentLayout = type;
+            document.getElementById("btn-force").classList.toggle("active", type === 'force');
+            document.getElementById("btn-hier").classList.toggle("active", type === 'hierarchical');
+            network.setOptions(getNetworkOptions(type));
+            setTimeout(() => resetCamera(), 350);
+        }
+
+        function setClusterFilter(clusterKey) {
+            activeClusterFilter = clusterKey;
+            filterNodes();
+        }
+
+        function filterNodes() {
+            const query = document.getElementById("search-input").value.toLowerCase().trim();
+            const cycle = document.getElementById("cycle-filter").value;
+
+            let visibleCount = 0;
+            let totalHours = 0;
+            let totalCredits = 0;
+
+            const updates = rawSubjects.map(s => {
+                const matchQuery = !query ||
+                    s.fullName.toLowerCase().includes(query) ||
+                    s.id.toLowerCase().includes(query) ||
+                    s.contents.toLowerCase().includes(query);
+
+                let matchCycle = true;
+                if (cycle === "TEC") matchCycle = s.year <= 3;
+                else if (cycle === "LIC") matchCycle = s.year === 4;
+                else if (cycle === "Y1") matchCycle = s.year === 1;
+                else if (cycle === "Y2") matchCycle = s.year === 2;
+                else if (cycle === "Y3") matchCycle = s.year === 3;
+                else if (cycle === "Y4") matchCycle = s.year === 4;
+
+                const matchCluster = activeClusterFilter === "ALL" || s.cluster === activeClusterFilter;
+
+                const isVisible = matchQuery && matchCycle && matchCluster;
+                if (isVisible) {
+                    visibleCount++;
+                    totalHours += s.total;
+                    totalCredits += s.credits;
+                }
+
+                return { id: s.id, hidden: !isVisible };
+            });
+
+            nodesDataset.update(updates);
+            updateStats(visibleCount, totalHours, totalCredits);
+        }
+
+        function updateEdgesVisibility() {
+            const showAprobada = document.getElementById("chk-aprobada").checked;
+            const showRegular = document.getElementById("chk-regular").checked;
+            const showAfinidad = document.getElementById("chk-afinidad").checked;
+
+            const allEdges = edgesDataset.get();
+            const updates = allEdges.map(e => {
+                let visible = true;
+                if (e.type === "APROBADA") visible = showAprobada;
+                if (e.type === "REGULAR") visible = showRegular;
+                if (e.type === "AFINIDAD") visible = showAfinidad;
+                return { id: e.id, hidden: !visible };
+            });
+
+            edgesDataset.update(updates);
+            updateStats();
+        }
+
+        function updateStats(vNodes, vHours, vCredits) {
+            const visibleNodes = vNodes !== undefined ? vNodes : nodesDataset.get({ filter: n => !n.hidden }).length;
+            const visibleEdges = edgesDataset.get({ filter: e => !e.hidden }).length;
+
+            document.getElementById("stat-nodes").innerText = visibleNodes;
+            document.getElementById("stat-edges").innerText = visibleEdges;
+
+            if (vHours !== undefined) {
+                document.getElementById("stat-hours").innerText = `${vHours} hs (${vCredits} Cr.)`;
+            }
+        }
+
+        // Iniciar al cargar el DOM
+        window.addEventListener("DOMContentLoaded", initGraph);
+    </script>
+</body>
+</html>
